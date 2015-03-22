@@ -9,10 +9,10 @@ fileTestY<-"./UCI HAR Dataset/test/Y_test.txt"
 #Read Test data
 testSubject<-read.table(fileTestSubject,na.string="")
 testX<-read.table(fileTestX,na.string="")
-testY<-read.table(fileTextY,na.string="")
+testY<-read.table(fileTestY,na.string="")
 
 #Get train data
-fileTrainSubject<-"./UCI HAR Dataset/test/subject_train.txt"
+fileTrainSubject<-"./UCI HAR Dataset/train/subject_train.txt"
 fileTrainX<-"./UCI HAR Dataset/train/X_train.txt"
 fileTrainY<-"./UCI HAR Dataset/train/Y_train.txt"
 
@@ -28,23 +28,34 @@ activityLabels<-read.table(fileActivityLabels,na.string="")
 mergeTestYActivity<-merge(testY,activityLabels,by.x="V1",by.y="V1",na.rm=TRUE)
 mergeTrainYActivity<-merge(trainY,activityLabels,by.x="V1",by.y="V1",na.rm=TRUE)
 
+#Read Feature
+fileFeature<-"./UCI HAR Dataset/features.txt"
+featuresData<-read.table(fileFeature,na.string="")
+colnames(featuresData) <- c("feature_Id", "feature")
+colnames(testX) <- featuresData$feature
+meanstd <- grep("(mean\\(\\)|std\\(\\))", colnames(testX))
+testX<-testX[,meanstd]
+
+colnames(trainX) <- featuresData$feature
+meanstd <- grep("(mean\\(\\)|std\\(\\))", colnames(trainX))
+trainX<-trainX[,meanstd]
+
+
 #Merge Test Train Data
 mergeTestData<-cbind(testSubject, mergeTestYActivity,testX)
 mergeTrainData<-cbind(trainSubject,mergeTrainYActivity,trainX)
 
 mergeTestTrainData<-rbind(mergeTestData,mergeTrainData)
 
-#Read Feature
-fileFeature<-"./UCI HAR Dataset/features.txt"
-featuresData<-read.table(fileFeature,na.string="")
-meanstd <- subset(featuresData,  grepl("(mean\\(\\)|std\\(\\))", featuresData$V2) )
 #Give column Names
-colnames(mergeTestTrainData) <- c("Subject", "Activity_Id","Activity",as.vector(featuresData[,2]))
+names(mergeTestTrainData)[1]<-"Subject"
+names(mergeTestTrainData)[2]<-"Activity_Id"
+names(mergeTestTrainData)[3]<-"Activity"
 
 mergeTestTrainData <- arrange(mergeTestTrainData, mergeTestTrainData$Subject, mergeTestTrainData$Activity_Id)
 
 #Get mean
-df <- ddply(mergeTestTrainData[, 1:68], .(Subject,Activity_Id),  colwise(mean))
+df <- ddply(mergeTestTrainData, .(Subject,Activity),  colwise(mean))
 #Write Summary
 write.table(df, file="summary.txt", row.name=FALSE)
 
